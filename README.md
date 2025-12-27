@@ -47,8 +47,8 @@ A minimal, production-ready Platform as a Service built on Docker Compose and Tr
 ### 1. Initial Setup
 
 ```bash
-# On a fresh Hetzner VPS (Ubuntu 22.04 recommended)
-curl -fsSL https://raw.githubusercontent.com/yourorg/paas/main/scripts/setup.sh | sudo bash
+# On a fresh Hetzner VPS (Ubuntu 24.04 recommended)
+curl -fsSL https://raw.githubusercontent.com/ghodsizadeh/Paasify/refs/heads/main/scripts/setup.sh | sudo bash
 
 # Or if you have the files locally:
 sudo ./scripts/setup.sh
