@@ -6,7 +6,7 @@ api:
   insecure: false
 
 log:
-  level: INFO
+  level: DEBUG
 
 # Entry points define the ports Traefik listens on
 entryPoints:
