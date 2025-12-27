@@ -16,8 +16,8 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      # Dashboard - accessible at traefik.${DOMAIN}
-      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN:-localhost}`)"
+      # Dashboard - accessible at traefik.${DEFAULT_DOMAIN} (or TRAEFIK_DOMAIN if set)
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DOMAIN:-traefik.${DEFAULT_DOMAIN:-localhost}}`)"
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"

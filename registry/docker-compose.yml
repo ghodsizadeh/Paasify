@@ -35,7 +35,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Router configuration
-      - "traefik.http.routers.registry.rule=Host(`registry.${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.registry.rule=Host(`${REGISTRY_DOMAIN:-registry.${DEFAULT_DOMAIN:-localhost}}`)"
       - "traefik.http.routers.registry.tls.certresolver=letsencrypt"
       - "traefik.http.routers.registry.entrypoints=websecure"
       # Service configuration

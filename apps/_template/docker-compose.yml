@@ -42,7 +42,7 @@ services:
       # ROUTING CONFIGURATION
       # Change 'myapp' to your app name and 'example.com' to your domain
       # =========================================================================
-      - "traefik.http.routers.${APP_NAME:-myapp}.rule=Host(`${APP_HOST:-myapp.example.com}`)"
+      - "traefik.http.routers.${APP_NAME:-myapp}.rule=Host(`${APP_HOST:-${APP_NAME:-myapp}.${DEFAULT_DOMAIN:-localhost}}`)"
       - "traefik.http.routers.${APP_NAME:-myapp}.tls.certresolver=letsencrypt"
       - "traefik.http.services.${APP_NAME:-myapp}.loadbalancer.server.port=${APP_PORT:-80}"
 

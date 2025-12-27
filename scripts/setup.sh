@@ -28,7 +28,7 @@ fi
 set +a
 
 # Defaults (can be overridden by config.env)
-DOMAIN="${DOMAIN:-example.com}"
+DEFAULT_DOMAIN="${DEFAULT_DOMAIN:-example.com}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 REGISTRY_USER="${REGISTRY_USER:-admin}"
 REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-changeme}"
@@ -311,7 +311,7 @@ print_next_steps() {
 propagate_config() {
     log_info "Propagating configuration to service .env files..."
     
-    local target_dirs=("traefik" "registry" "databases/postgres" "databases/redis")
+    local target_dirs=("traefik" "registry" "portainer" "databases/postgres" "databases/redis")
     
     # Combine config.env and config.env.local
     local env_content=""
@@ -368,6 +368,7 @@ main() {
     log_info "Starting/Updating services..."
     docker compose -f "${PAAS_ROOT}/traefik/docker-compose.yml" up -d --remove-orphans --pull always
     docker compose -f "${PAAS_ROOT}/registry/docker-compose.yml" up -d --remove-orphans --pull always
+    docker compose -f "${PAAS_ROOT}/portainer/docker-compose.yml" up -d --remove-orphans --pull always
     docker compose -f "${PAAS_ROOT}/databases/postgres/docker-compose.yml" up -d --remove-orphans --pull always
     docker compose -f "${PAAS_ROOT}/databases/redis/docker-compose.yml" up -d --remove-orphans --pull always
     

@@ -21,7 +21,7 @@ elif [[ -f "${PAAS_ROOT}/config.env" ]]; then
     source "${PAAS_ROOT}/config.env"
 fi
 
-DOMAIN="${DOMAIN:-example.com}"
+DEFAULT_DOMAIN="${DEFAULT_DOMAIN:-example.com}"
 
 # Colors
 RED='\033[0;31m'
@@ -79,10 +79,11 @@ prompt_config() {
     
     # App subdomain
     echo -e "${BLUE}App Domain${NC}"
-    echo "  Your app will be accessible at: https://<subdomain>.${DOMAIN}"
+    echo "  Your app will be accessible at: https://<subdomain>.${DEFAULT_DOMAIN}"
+    echo "  Leave blank to use auto-generated: ${app_name}.${DEFAULT_DOMAIN}"
     read -p "  Subdomain [${app_name}]: " APP_SUBDOMAIN
     APP_SUBDOMAIN="${APP_SUBDOMAIN:-$app_name}"
-    APP_HOST="${APP_SUBDOMAIN}.${DOMAIN}"
+    APP_HOST="${APP_SUBDOMAIN}.${DEFAULT_DOMAIN}"
     
     echo ""
     
@@ -106,7 +107,7 @@ prompt_config() {
     
     case "$REGISTRY_CHOICE" in
         1)
-            IMAGE_REGISTRY="registry.${DOMAIN}"
+            IMAGE_REGISTRY="registry.${DEFAULT_DOMAIN}"
             IMAGE="${IMAGE_REGISTRY}/${app_name}:latest"
             ;;
         2)
