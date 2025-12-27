@@ -277,46 +277,29 @@ install_restic() {
     log_success "Restic installed"
 }
 
-print_next_steps() {
-    echo ""
-    echo "========================================"
-    echo -e "${GREEN}  PaaS Setup Complete!${NC}"
-    echo "========================================"
-    echo ""
-    echo "Next steps:"
-    echo ""
-    echo "1. Configure your domain DNS to point to this server"
-    echo ""
-    echo "2. Update Traefik configuration with your domain:"
-    echo "   # Edit ${PAAS_ROOT}/traefik/traefik.yml if needed"
-    echo ""
-    echo "3. Set up database passwords:"
-    echo "   nano ${PAAS_ROOT}/databases/postgres/.env"
-    echo "   nano ${PAAS_ROOT}/databases/redis/.env"
-    echo ""
-    echo "4. Configure backups:"
-    echo "   nano ${PAAS_ROOT}/backups/restic-env.sh"
-    echo "   restic init  # Initialize the backup repository"
-    echo ""
-    echo "5. Start the services:"
-    echo "   cd ${PAAS_ROOT}/traefik && docker compose up -d"
-    echo "   cd ${PAAS_ROOT}/registry && docker compose up -d"
-    echo "   cd ${PAAS_ROOT}/databases/postgres && docker compose up -d"
-    echo "   cd ${PAAS_ROOT}/databases/redis && docker compose up -d"
-    echo ""
-    echo "6. Manage registry users:"
-    echo "   ${PAAS_ROOT}/scripts/registry-user.sh add <username>"
-    echo "   ${PAAS_ROOT}/scripts/registry-user.sh list"
-    echo ""
-    echo "7. Deploy your first app:"
-    echo "   ${PAAS_ROOT}/scripts/new-app.sh myapp  # Interactive setup"
-    echo ""
-    echo "8. Set up GitHub Actions deployment:"
-    echo "   See ${PAAS_ROOT}/docs/GITHUB_DEPLOYMENT.md"
-    echo ""
-    echo "Helpful docs:"
-    echo "  - ${PAAS_ROOT}/docs/DEPLOYING_APPS.md"
-    echo ""
+propagate_config() {
+    log_info "Propagating configuration to service .env files..."
+    
+    local target_dirs=("traefik" "registry" "databases/postgres" "databases/redis")
+    
+    # Combine config.env and config.env.local
+    local env_content=""
+    if [[ -f "${SCRIPT_DIR}/../config.env" ]]; then
+        env_content+=$(cat "${SCRIPT_DIR}/../config.env")
+        env_content+=$'\n'
+    fi
+    if [[ -f "${SCRIPT_DIR}/../config.env.local" ]]; then
+        env_content+=$(cat "${SCRIPT_DIR}/../config.env.local")
+        env_content+=$'\n'
+    fi
+
+    for dir in "${target_dirs[@]}"; do
+        if [[ -d "${PAAS_ROOT}/${dir}" ]]; then
+            echo "${env_content}" > "${PAAS_ROOT}/${dir}/.env"
+        fi
+    done
+    
+    log_success "Configuration propagated"
 }
 
 #-------------------------------------------------------------------------------
@@ -345,10 +328,11 @@ main() {
     setup_redis
     setup_backup_scripts
     setup_cron
-    setup_backup_scripts
-    setup_cron
     create_deploy_user
     
+    # Propagate config to .env files for docker compose
+    propagate_config
+
     # Update/Restart services
     log_info "Starting/Updating services..."
     docker compose -f "${PAAS_ROOT}/traefik/docker-compose.yml" up -d --remove-orphans --pull always
