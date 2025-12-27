@@ -1,0 +1,21 @@
+# Hetzner Object Storage Configuration
+# Create a bucket and access key at: https://console.hetzner.cloud/
+
+export RESTIC_REPOSITORY="s3:https://fsn1.your-objectstorage.com/paas-backups"
+export RESTIC_PASSWORD="your-strong-encryption-password"
+export AWS_ACCESS_KEY_ID="your-access-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+
+# ============================================================================
+# Alternative: Backblaze B2 (often cheaper for backup storage)
+# ============================================================================
+# export RESTIC_REPOSITORY="b2:your-bucket-name:paas-backups"
+# export RESTIC_PASSWORD="your-strong-encryption-password"
+# export B2_ACCOUNT_ID="your-account-id"
+# export B2_ACCOUNT_KEY="your-account-key"
+
+# ============================================================================
+# Alternative: Local directory (for testing only!)
+# ============================================================================
+# export RESTIC_REPOSITORY="/opt/paas/backups/local-repo"
+# export RESTIC_PASSWORD="your-strong-encryption-password"

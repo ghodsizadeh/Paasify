@@ -1,0 +1,79 @@
+version: "3.9"
+
+# ==============================================================================
+# Application Template
+# ==============================================================================
+#
+# QUICK START:
+#   1. Copy this directory: cp -r _template myapp
+#   2. Edit the values below (image, domain, port)
+#   3. Create .env from .env.example and configure
+#   4. Deploy: /opt/paas/scripts/deploy.sh myapp
+#
+# ZERO-DOWNTIME REQUIREMENTS:
+#   - Health check endpoint (e.g., /health)
+#   - Graceful shutdown handling (SIGTERM)
+#   - Fast startup time (<30s recommended)
+#
+# ==============================================================================
+
+services:
+  app:
+    # =========================================================================
+    # CUSTOMIZE THESE VALUES
+    # =========================================================================
+    image: ${IMAGE:-nginx:alpine}
+    container_name: ${APP_NAME:-myapp}
+
+    restart: unless-stopped
+
+    environment:
+      # Database connections (from internal network)
+      - DATABASE_URL=${DATABASE_URL:-postgres://admin:changeme@postgres:5432/myapp}
+      - REDIS_URL=${REDIS_URL:-redis://:changeme@redis:6379}
+      # Add your app-specific environment variables here
+      # - API_KEY=${API_KEY}
+      # - SECRET_KEY=${SECRET_KEY}
+
+    labels:
+      - "traefik.enable=true"
+
+      # =========================================================================
+      # ROUTING CONFIGURATION
+      # Change 'myapp' to your app name and 'example.com' to your domain
+      # =========================================================================
+      - "traefik.http.routers.${APP_NAME:-myapp}.rule=Host(`${APP_HOST:-myapp.example.com}`)"
+      - "traefik.http.routers.${APP_NAME:-myapp}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${APP_NAME:-myapp}.loadbalancer.server.port=${APP_PORT:-80}"
+
+      # Optional: Add rate limiting
+      # - "traefik.http.middlewares.${APP_NAME:-myapp}-ratelimit.ratelimit.average=100"
+      # - "traefik.http.middlewares.${APP_NAME:-myapp}-ratelimit.ratelimit.burst=50"
+      # - "traefik.http.routers.${APP_NAME:-myapp}.middlewares=${APP_NAME:-myapp}-ratelimit"
+
+    networks:
+      - web # External network for Traefik
+      - internal # Internal network for database access
+
+    # =========================================================================
+    # HEALTH CHECK (Required for zero-downtime deploys)
+    # =========================================================================
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${APP_PORT:-80}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Optional: Resource limits
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+networks:
+  web:
+    external: true
+  internal:
+    external: true
