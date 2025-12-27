@@ -34,8 +34,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      # IMPORTANT: Change this to your email or set via TRAEFIK_ACME_EMAIL env var
-      email: admin@example.com
+      # Email is set via CLI argument from ADMIN_EMAIL env var in docker-compose.yml
       storage: /acme.json
       httpChallenge:
         entryPoint: web
