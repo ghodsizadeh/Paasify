@@ -13,10 +13,14 @@ A minimal, production-ready Platform as a Service built on Docker Compose and Tr
 
 ```
 /opt/paas/
+├── config.env                # 🆕 Centralized configuration
 ├── traefik/                  # Reverse proxy & SSL
 │   ├── docker-compose.yml
 │   ├── traefik.yml
 │   └── acme.json
+├── registry/                 # 🆕 Private Docker registry
+│   ├── docker-compose.yml
+│   └── auth/htpasswd
 ├── apps/                     # Your applications
 │   ├── _template/            # Copy this for new apps
 │   └── your-app/
@@ -26,11 +30,17 @@ A minimal, production-ready Platform as a Service built on Docker Compose and Tr
 ├── backups/                  # Backup configuration
 │   ├── scripts/
 │   └── restic-env.sh
+├── docs/                     # 🆕 Documentation
+│   ├── DEPLOYING_APPS.md
+│   └── GITHUB_DEPLOYMENT.md
 └── scripts/                  # Helper scripts
     ├── setup.sh
     ├── deploy.sh
+    ├── new-app.sh            # 🆕 Interactive app creator
+    ├── registry-user.sh      # 🆕 Registry user management
     └── restore.sh
 ```
+
 
 ## 🚀 Quick Start
 
@@ -82,20 +92,68 @@ cd /opt/paas/traefik && docker compose up -d
 docker compose logs -f
 ```
 
-### 5. Deploy Your First App
+### 5. Start the Registry
 
 ```bash
-# Create from template
-cp -r /opt/paas/apps/_template /opt/paas/apps/hello
+cd /opt/paas/registry && docker compose up -d
 
-# Edit the configuration
-nano /opt/paas/apps/hello/docker-compose.yml
+# Add your first registry user
+/opt/paas/scripts/registry-user.sh add admin
+```
 
-# Deploy
-/opt/paas/scripts/deploy.sh hello
+### 6. Deploy Your First App
+
+```bash
+# Interactive setup (recommended)
+/opt/paas/scripts/new-app.sh myapp
+
+# Or manually from template
+cp -r /opt/paas/apps/_template /opt/paas/apps/myapp
+nano /opt/paas/apps/myapp/.env
+/opt/paas/scripts/deploy.sh myapp
+```
+
+## 🐳 Docker Registry
+
+Your private registry is available at `https://registry.yourdomain.com`.
+
+### Managing Users
+
+```bash
+# Add a user
+/opt/paas/scripts/registry-user.sh add username
+
+# List users
+/opt/paas/scripts/registry-user.sh list
+
+# Remove a user
+/opt/paas/scripts/registry-user.sh remove username
+```
+
+### Pushing Images
+
+```bash
+# Login
+docker login registry.yourdomain.com
+
+# Tag and push
+docker build -t registry.yourdomain.com/myapp:latest .
+docker push registry.yourdomain.com/myapp:latest
 ```
 
 ## 📦 Deploying Applications
+
+### Using the New App Script (Recommended)
+
+```bash
+/opt/paas/scripts/new-app.sh myapp
+```
+
+This interactive script will configure:
+- App domain and port
+- Docker registry (self-hosted, ghcr.io, or Docker Hub)
+- Database connections
+- GitHub Actions workflow
 
 ### Using the Deploy Script
 

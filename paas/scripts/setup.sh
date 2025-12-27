@@ -15,8 +15,20 @@ NC='\033[0m' # No Color
 
 # Configuration
 PAAS_ROOT="/opt/paas"
+
+# Source config file if available
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/../config.env.local" ]]; then
+    source "${SCRIPT_DIR}/../config.env.local"
+elif [[ -f "${SCRIPT_DIR}/../config.env" ]]; then
+    source "${SCRIPT_DIR}/../config.env"
+fi
+
+# Defaults (can be overridden by config.env)
 DOMAIN="${DOMAIN:-example.com}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
+REGISTRY_USER="${REGISTRY_USER:-admin}"
+REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-changeme}"
 
 #-------------------------------------------------------------------------------
 # Helper Functions
@@ -85,7 +97,7 @@ configure_firewall() {
 create_directory_structure() {
     log_info "Creating PaaS directory structure..."
     
-    mkdir -p "${PAAS_ROOT}"/{traefik,apps,databases/{postgres,redis},backups/scripts,scripts}
+    mkdir -p "${PAAS_ROOT}"/{traefik,apps,databases/{postgres,redis},backups/scripts,scripts,registry/auth,docs}
     
     log_success "Directory structure created at ${PAAS_ROOT}"
 }
@@ -263,6 +275,81 @@ REDIS_PASSWORD=your-secure-password-here
 EOF
 
     log_success "Redis configuration created"
+}
+
+setup_registry() {
+    log_info "Setting up Docker Registry..."
+    
+    cat > "${PAAS_ROOT}/registry/docker-compose.yml" << 'EOF'
+version: "3.9"
+
+services:
+  registry:
+    image: registry:2
+    container_name: registry
+    restart: unless-stopped
+    volumes:
+      - registry_data:/var/lib/registry
+      - ./auth:/auth:ro
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "Docker Registry"
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.registry.rule=Host(`registry.${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.registry.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.registry.entrypoints=websecure"
+      - "traefik.http.services.registry.loadbalancer.server.port=5000"
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/v2/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  registry_data:
+
+networks:
+  web:
+    external: true
+EOF
+
+    # Create initial htpasswd file
+    if command -v htpasswd &> /dev/null; then
+        htpasswd -Bbn "${REGISTRY_USER}" "${REGISTRY_PASSWORD}" > "${PAAS_ROOT}/registry/auth/htpasswd"
+        log_success "Registry user '${REGISTRY_USER}' created"
+    else
+        log_warn "htpasswd not found - install apache2-utils to create registry users"
+        touch "${PAAS_ROOT}/registry/auth/htpasswd"
+    fi
+    
+    log_success "Docker Registry configuration created"
+}
+
+create_deploy_user() {
+    log_info "Creating deploy user for CI/CD..."
+    
+    if id "deploy" &>/dev/null; then
+        log_warn "Deploy user already exists, skipping..."
+    else
+        useradd -m -s /bin/bash deploy
+        usermod -aG docker deploy
+        log_success "Deploy user created and added to docker group"
+    fi
+    
+    # Allow deploy user to run deploy script without password
+    cat > /etc/sudoers.d/deploy << 'EOF'
+# Allow deploy user to run PaaS scripts
+deploy ALL=(ALL) NOPASSWD: /opt/paas/scripts/deploy.sh
+deploy ALL=(ALL) NOPASSWD: /opt/paas/scripts/new-app.sh
+EOF
+    chmod 440 /etc/sudoers.d/deploy
+    
+    log_success "Deploy user configured for CI/CD"
 }
 
 setup_backup_scripts() {
@@ -698,18 +785,33 @@ print_next_steps() {
     echo ""
     echo "5. Start the services:"
     echo "   cd ${PAAS_ROOT}/traefik && docker compose up -d"
+    echo "   cd ${PAAS_ROOT}/registry && docker compose up -d"
     echo "   cd ${PAAS_ROOT}/databases/postgres && docker compose up -d"
     echo "   cd ${PAAS_ROOT}/databases/redis && docker compose up -d"
     echo ""
-    echo "6. Deploy your first app:"
+    echo "6. Manage registry users:"
+    echo "   ${PAAS_ROOT}/scripts/registry-user.sh add <username>"
+    echo "   ${PAAS_ROOT}/scripts/registry-user.sh list"
+    echo ""
+    echo "7. Deploy your first app:"
+    echo "   ${PAAS_ROOT}/scripts/new-app.sh myapp  # Interactive setup"
+    echo "   # Or manually:"
     echo "   cp -r ${PAAS_ROOT}/apps/_template ${PAAS_ROOT}/apps/myapp"
-    echo "   # Edit ${PAAS_ROOT}/apps/myapp/docker-compose.yml"
     echo "   ${PAAS_ROOT}/scripts/deploy.sh myapp"
     echo ""
+    echo "8. Set up GitHub Actions deployment:"
+    echo "   See ${PAAS_ROOT}/docs/GITHUB_DEPLOYMENT.md"
+    echo ""
     echo "Useful commands:"
+    echo "  - Create new app:   ${PAAS_ROOT}/scripts/new-app.sh <app-name>"
     echo "  - Deploy an app:    ${PAAS_ROOT}/scripts/deploy.sh <app-name> [tag]"
+    echo "  - Registry users:   ${PAAS_ROOT}/scripts/registry-user.sh <add|remove|list>"
     echo "  - Backup databases: ${PAAS_ROOT}/backups/scripts/backup-databases.sh"
     echo "  - Restore system:   ${PAAS_ROOT}/scripts/restore.sh"
+    echo ""
+    echo "Documentation:"
+    echo "  - Deploying Apps:   ${PAAS_ROOT}/docs/DEPLOYING_APPS.md"
+    echo "  - GitHub CI/CD:     ${PAAS_ROOT}/docs/GITHUB_DEPLOYMENT.md"
     echo ""
 }
 
@@ -730,6 +832,7 @@ main() {
     create_directory_structure
     create_docker_networks
     setup_traefik
+    setup_registry
     setup_postgres
     setup_redis
     install_restic
@@ -738,6 +841,7 @@ main() {
     create_deploy_script
     create_restore_script
     create_app_template
+    create_deploy_user
     
     print_next_steps
 }
