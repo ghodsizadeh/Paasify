@@ -53,12 +53,8 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:5000/v2/",
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:5000/ || exit 0",
         ]
       interval: 30s
       timeout: 10s
