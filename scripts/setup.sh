@@ -19,11 +19,13 @@ REPO_URL="https://github.com/ghodsizadeh/Paasify.git"
 
 # Source config file if available
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -a # Automatically export all variables
 if [[ -f "${SCRIPT_DIR}/../config.env.local" ]]; then
     source "${SCRIPT_DIR}/../config.env.local"
 elif [[ -f "${SCRIPT_DIR}/../config.env" ]]; then
     source "${SCRIPT_DIR}/../config.env"
 fi
+set +a
 
 # Defaults (can be overridden by config.env)
 DOMAIN="${DOMAIN:-example.com}"
@@ -343,8 +345,17 @@ main() {
     setup_redis
     setup_backup_scripts
     setup_cron
+    setup_backup_scripts
+    setup_cron
     create_deploy_user
     
+    # Update/Restart services
+    log_info "Starting/Updating services..."
+    docker compose -f "${PAAS_ROOT}/traefik/docker-compose.yml" up -d --remove-orphans --pull always
+    docker compose -f "${PAAS_ROOT}/registry/docker-compose.yml" up -d --remove-orphans --pull always
+    docker compose -f "${PAAS_ROOT}/databases/postgres/docker-compose.yml" up -d --remove-orphans --pull always
+    docker compose -f "${PAAS_ROOT}/databases/redis/docker-compose.yml" up -d --remove-orphans --pull always
+
     print_next_steps
 }
 

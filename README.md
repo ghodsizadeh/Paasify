@@ -292,6 +292,31 @@ For full observability, consider adding:
 - **Loki** for log aggregation
 - **Uptime Kuma** for uptime monitoring
 
+## 🔄 Updates & Maintenance
+
+### Updating the PaaS
+To update the PaaS scripts and configuration to the latest version, simply re-run the setup script:
+
+```bash
+sudo /opt/paas/scripts/setup.sh
+```
+
+This will:
+1. Pull the latest changes from the repository.
+2. Update configuration templates (preserving your local changes if possible, but verify `.env` files).
+3. Restart services with the latest images.
+
+### Uninstalling
+To completely remove the PaaS environment:
+
+```bash
+# Standard uninstall (interactive)
+sudo /opt/paas/scripts/uninstall.sh
+
+# Full cleanup (removes data volumes without asking)
+# sudo /opt/paas/scripts/uninstall.sh --full
+```
+
 ## 🆘 Troubleshooting
 
 ### Traefik not getting SSL certificates
