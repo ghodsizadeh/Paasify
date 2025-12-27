@@ -20,6 +20,11 @@ services:
     image: registry:2
     container_name: registry
     restart: unless-stopped
+    env_file:
+      - path: ../config.env
+        required: true
+      - path: ../config.env.local
+        required: false
     volumes:
       - registry_data:/var/lib/registry
       - ./auth:/auth:ro

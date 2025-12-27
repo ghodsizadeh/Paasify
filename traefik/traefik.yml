@@ -34,7 +34,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      # IMPORTANT: Change this to your email
+      # IMPORTANT: Change this to your email or set via TRAEFIK_ACME_EMAIL env var
       email: admin@example.com
       storage: /acme.json
       httpChallenge:

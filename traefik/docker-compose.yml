@@ -2,9 +2,14 @@ version: "3.9"
 
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.2
     container_name: traefik
     restart: unless-stopped
+    env_file:
+      - path: ../config.env
+        required: true
+      - path: ../config.env.local
+        required: false
     ports:
       - "80:80"
       - "443:443"
@@ -23,7 +28,7 @@ services:
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       # Basic auth - default: admin/changeme
       # Generate new: htpasswd -nb admin yourpassword
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$ruca84Hq$$mbjdMZBAG.KWn7vfN/SNK/"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_USER:-admin}:${TRAEFIK_PASSWORD_HASH:-$$apr1$$ruca84Hq$$mbjdMZBAG.KWn7vfN/SNK/}"
 
 networks:
   web:
